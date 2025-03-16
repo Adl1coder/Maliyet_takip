@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import openpyxl
 
+from tkinter import PhotoImage
+from PIL import Image, ImageTk  # Pillow kütüphanesi
+
 
 ##########################################
 # Model, Factory ve Singleton Tasarımı   #
@@ -609,10 +612,7 @@ if __name__ == "__main__":
     ActivityDatabase.get_instance()
     MainMenuGUI(root)
     root.mainloop()
-import tkinter as tk
-from tkinter import PhotoImage
 
-# Parça bilgileri
 parcalar = [
     {"ad": "Üst Kapak", "maliyet": 50, "omur": 5000, "image": "images/top_cover.png"},
     {"ad": "Sol Tık", "maliyet": 30, "omur": 3000, "image": "images/left_click.png"},
@@ -626,66 +626,46 @@ parcalar = [
 # Ana pencereyi oluştur
 root = tk.Tk()
 root.title("Parça Seçimi")
+root.geometry("600x400")
 
+# Fotoğrafları yeniden boyutlandıran fonksiyon
+def load_resized_image(image_path, width=100, height=100):
+    try:
+        image = Image.open(image_path)  # Resmi aç
+        image = image.resize((width, height))  # Yeniden boyutlandır
+        return ImageTk.PhotoImage(image)  # Tkinter uyumlu hale getir
+    except Exception as e:
+        print(f"{image_path} yüklenemedi: {e}")
+        return None  # Hata olursa None döndür
 
-# Fotoğrafları ve butonları oluştur
+# Parça seçildiğinde konsola yazdıran fonksiyon
 def parca_sec(parca):
     print(f"Seçilen Parça: {parca['ad']} - Maliyet: {parca['maliyet']} - Ömür: {parca['omur']}")
 
-
+# Ana çerçeve
 frame = tk.Frame(root)
-frame.pack()
+frame.pack(padx=20, pady=20)  # Kenar boşlukları
+
+# Grid sistemine göre düzenleme
+row, col = 0, 0
+max_columns = 3  # Maksimum 3 sütun olacak şekilde hizalama
+images = []  # Resim referanslarını saklamak için
 
 for parca in parcalar:
-    try:
-        image = PhotoImage(file=parca["image"])
-        img_label = tk.Label(frame, image=image)
-        img_label.image = image  # Referans kaybetmemek için
-        img_label.pack()
+    img = load_resized_image(parca["image"], width=120, height=120)
+
+    if img:
+        images.append(img)  # Resmi listede sakla, yoksa kaybolur
+
+        img_label = tk.Label(frame, image=img)
+        img_label.grid(row=row, column=col, padx=10, pady=10)  # Resmi hizala
 
         btn = tk.Button(frame, text=parca["ad"], command=lambda p=parca: parca_sec(p))
-        btn.pack()
-    except Exception as e:
-        print(f"{parca['ad']} için resim yüklenemedi: {e}")
+        btn.grid(row=row + 1, column=col, padx=10, pady=5)  # Butonu da resmin altına koy
 
-root.mainloop()
-import tkinter as tk
-from tkinter import PhotoImage
-
-# Parça bilgileri
-parcalar = [
-    {"ad": "Üst Kapak", "maliyet": 50, "omur": 5000, "image": "images/top_cover.png"},
-    {"ad": "Sol Tık", "maliyet": 30, "omur": 3000, "image": "images/left_click.png"},
-    {"ad": "Sağ Tık", "maliyet": 30, "omur": 3000, "image": "images/right_click.png"},
-    {"ad": "Tekerlek", "maliyet": 40, "omur": 4000, "image": "images/scroll_wheel.png"},
-    {"ad": "Sensör", "maliyet": 150, "omur": 10000, "image": "images/sensor.png"},
-    {"ad": "Devre Kartı", "maliyet": 200, "omur": 8000, "image": "images/pcb_board.png"},
-    {"ad": "USB Kablo", "maliyet": 60, "omur": 6000, "image": "images/usb_cable.png"}
-]
-
-# Ana pencereyi oluştur
-root = tk.Tk()
-root.title("Parça Seçimi")
-
-
-# Fotoğrafları ve butonları oluştur
-def parca_sec(parca):
-    print(f"Seçilen Parça: {parca['ad']} - Maliyet: {parca['maliyet']} - Ömür: {parca['omur']}")
-
-
-frame = tk.Frame(root)
-frame.pack()
-
-for parca in parcalar:
-    try:
-        image = PhotoImage(file=parca["image"])
-        img_label = tk.Label(frame, image=image)
-        img_label.image = image  # Referans kaybetmemek için
-        img_label.pack()
-
-        btn = tk.Button(frame, text=parca["ad"], command=lambda p=parca: parca_sec(p))
-        btn.pack()
-    except Exception as e:
-        print(f"{parca['ad']} için resim yüklenemedi: {e}")
+        col += 1
+        if col >= max_columns:  # 3 sütun tamamlanınca yeni satıra geç
+            col = 0
+            row += 2
 
 root.mainloop()
