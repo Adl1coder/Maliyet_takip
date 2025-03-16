@@ -81,15 +81,16 @@ class PartDatabase:
         Parça veritabanına başlangıç verileri eklenir.
         """
         parts = [
-            (1, "Body", 5000, 20.0, "body.png"),
-            (2, "Sensor", 3000, 15.0, "sensor.png"),
-            (3, "Devre Kartı", 4000, 25.0, "circuit.png"),
-            (4, "Right Düğmesi", 7000, 5.0, "right_button.png"),
-            (5, "Left Düğmesi", 7000, 5.0, "left_button.png"),
-            (6, "Scroll", 4000, 7.0, "scroll.png"),
+            (1, "Body", 5000, 20.0, "images/top_cover.png"),
+            (2, "Sensor", 3000, 15.0, "images/sensor.png"),
+            (3, "Devre Kartı", 4000, 25.0, "images/pcb_board.png"),
+            (4, "Right Düğmesi", 7000, 5.0, "images/right_click.png"),
+            (5, "Left Düğmesi", 7000, 5.0, "images/left_click.png"),
+            (6, "Scroll", 4000, 7.0, "images/scroll.png"),
             # Alternatif isimler
-            (7, "Body Premium", 8000, 35.0, "body_premium.png"),
-            (8, "Sensor Pro", 5000, 30.0, "sensor_pro.png")
+            (7, "Body Premium", 8000, 35.0, "images/top_cover.png"),
+            (8, "Sensor Pro", 5000, 30.0, "images/sensor.png"),
+            (9, "USB Kablo", 5000, 50, "images/usb_cable.png")
         ]
         cursor = self.conn.cursor()
         cursor.executemany("INSERT INTO parts VALUES (?, ?, ?, ?, ?)", parts)
@@ -258,7 +259,7 @@ class AssemblyComponent:
 
 class RepairProcess(Observable):
     """
-    Tamir işlemleri (mouse montajı) yönetilir.
+    Montaj işlemleri (mouse montajı) yönetilir.
     Gerekli parça sırasını kontrol eder ve bileşenleri birleştirir.
     """
 
@@ -286,17 +287,17 @@ class RepairProcess(Observable):
 
 
 ##########################################
-# Ana Menü, Tamir ve Analiz Ekranları     #
+# Ana Menü, Montaj ve Analiz Ekranları     #
 ##########################################
 
 class MainMenuGUI:
     """
-    Ana menüde arka plan görseli ve iki seçenek (Tamir ve Faaliyet Raporları) sunulur.
+    Ana menüde arka plan görseli ve iki seçenek (Montaj ve Faaliyet Raporları) sunulur.
     """
 
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("Tamirci Simülasyonu - Ana Menü")
+        self.root.title("Montajci Simülasyonu - Ana Menü")
         self.root.geometry("400x400")
 
         # Arka plan resmi (background.png) yüklenmeye çalışılır.
@@ -310,8 +311,8 @@ class MainMenuGUI:
             pass  # Resim bulunamazsa boş geçilir.
 
         # Ana menü butonları
-        self.tamir_button = tk.Button(self.main_frame, text="Tamir", command=self.open_repair)
-        self.tamir_button.place(relx=0.3, rely=0.4)
+        self.Montaj_button = tk.Button(self.main_frame, text="Montaj", command=self.open_repair)
+        self.Montaj_button.place(relx=0.3, rely=0.4)
         self.rapor_button = tk.Button(self.main_frame, text="Faaliyet Raporları", command=self.open_analysis)
         self.rapor_button.place(relx=0.3, rely=0.5)
 
@@ -322,172 +323,6 @@ class MainMenuGUI:
     def open_analysis(self):
         self.main_frame.destroy()
         AnalysisGUI(self.root, self)
-
-
-class RepairGUI:
-    """
-    Tamir ekranı, 640x480 boyutunda olup; parça seçim, bileşen birleştirme/silme ve toplam maliyet güncellemesi gibi işlevler sunar.
-    Ayrıca "Ana Menüye Dön" butonu ile ana menüye geri dönüş sağlanır.
-    """
-
-    def __init__(self, root: tk.Tk, main_menu: MainMenuGUI):
-        self.root = root
-        self.main_menu = main_menu
-        self.root.geometry("640x480")
-        self.root.title("Tamirci Simülasyonu - Tamir")
-
-        self.components = []
-        self.component_buttons = {}
-        self.selected_components = []
-
-        self.repair_frame = tk.Frame(self.root)
-        self.repair_frame.pack(fill="both", expand=True)
-
-        top_frame = tk.Frame(self.repair_frame)
-        top_frame.pack(side="top", fill="x", pady=10)
-        self.cost_label = tk.Label(top_frame, text="Toplam Maliyet: 0.00 TL")
-        self.cost_label.pack(side="right", padx=10)
-        self.cost_display = CostDisplay(self.cost_label)
-        self.required_sequence = ["Body", "Sensor", "Devre Kartı", "Right Düğmesi", "Left Düğmesi", "Scroll"]
-        order_text = "Önerilen Sıra: " + " > ".join(self.required_sequence)
-        self.order_label = tk.Label(top_frame, text=order_text)
-        self.order_label.pack(side="right", padx=10)
-        self.repair_process = RepairProcess(self.required_sequence)
-        self.repair_process.register(self.cost_display)
-
-        self.get_part_button = tk.Button(self.repair_frame, text="Parça Al", command=self.open_category_selection)
-        self.get_part_button.pack(pady=10)
-
-        self.components_frame = tk.Frame(self.repair_frame)
-        self.components_frame.pack(pady=10)
-
-        buttons_frame = tk.Frame(self.repair_frame)
-        buttons_frame.pack(pady=10)
-        self.merge_button = tk.Button(buttons_frame, text="Birleştir", command=self.merge_selected_components)
-        self.merge_button.grid(row=0, column=0, padx=5)
-        self.merge_button.config(state="disabled")
-        self.delete_button = tk.Button(buttons_frame, text="Sil", command=self.delete_selected_component)
-        self.delete_button.grid(row=0, column=1, padx=5)
-        self.delete_button.config(state="disabled")
-
-        # Ana Menüye dönüş butonu
-        self.back_button = tk.Button(self.repair_frame, text="Ana Menüye Dön", command=self.return_to_main)
-        self.back_button.pack(side="bottom", pady=10)
-
-    def update_total_cost(self):
-        total = sum(comp.get_cost() for comp in self.components)
-        self.repair_process.total_cost = total
-        self.repair_process.notify_observers(total)
-
-    def open_category_selection(self):
-        self.category_window = tk.Toplevel(self.root)
-        self.category_window.title("Kategori Seçimi")
-        self.category_window.geometry("480x640")
-        categories = ["Body", "Sensor", "Devre Kartı", "Right Düğmesi", "Left Düğmesi", "Scroll"]
-        for cat in categories:
-            btn = tk.Button(self.category_window, text=cat, command=lambda c=cat: self.open_part_selection(c))
-            btn.pack(pady=5)
-
-    def open_part_selection(self, category: str):
-        self.category_window.destroy()
-        self.part_selection_window = tk.Toplevel(self.root)
-        self.part_selection_window.title(f"{category} Parçaları")
-        self.part_selection_window.geometry("480x640")
-        try:
-            db = PartDatabase.get_instance()
-            parts = db.get_parts()
-        except Exception as e:
-            messagebox.showerror("Veritabanı Hatası", str(e))
-            return
-        filtered_parts = [part for part in parts if part.name.startswith(category)]
-        sorter = OptimalSortStrategy()
-        sorted_parts = sorter.sort(filtered_parts)
-        for part in sorted_parts:
-            btn = tk.Button(self.part_selection_window,
-                            text=f"{part.name} (Ömür: {part.lifespan}, Fiyat: {part.price} TL)",
-                            command=lambda p=part: self.select_part(p))
-            btn.pack(pady=5)
-
-    def select_part(self, part: Part):
-        component = AssemblyComponent([part])
-        self.components.append(component)
-        btn = tk.Button(self.components_frame, text=part.name,
-                        command=lambda comp=component: self.toggle_component_selection(comp))
-        btn.pack(side="left", padx=5)
-        self.component_buttons[component] = btn
-        self.part_selection_window.destroy()
-        self.update_total_cost()
-
-    def toggle_component_selection(self, component: AssemblyComponent):
-        btn = self.component_buttons[component]
-        if component in self.selected_components:
-            self.selected_components.remove(component)
-            btn.config(relief="raised")
-        else:
-            self.selected_components.append(component)
-            btn.config(relief="sunken")
-        if len(self.selected_components) == 1:
-            self.delete_button.config(state="normal")
-            self.merge_button.config(state="disabled")
-        elif len(self.selected_components) == 2:
-            self.merge_button.config(state="normal")
-            self.delete_button.config(state="disabled")
-        else:
-            self.merge_button.config(state="disabled")
-            self.delete_button.config(state="disabled")
-
-    def merge_selected_components(self):
-        if len(self.selected_components) != 2:
-            messagebox.showwarning("Uyarı", "Lütfen iki bileşen seçiniz!")
-            return
-        comp1, comp2 = self.selected_components
-        try:
-            new_component = self.repair_process.merge_components(comp1, comp2)
-        except Exception as e:
-            messagebox.showerror("Birleştirme Hatası", str(e))
-            self.clear_selection()
-            return
-        for comp in self.selected_components:
-            btn = self.component_buttons.pop(comp)
-            btn.destroy()
-            if comp in self.components:
-                self.components.remove(comp)
-        self.clear_selection()
-        self.components.append(new_component)
-        new_btn = tk.Button(self.components_frame, text=" + ".join(new_component.get_names()),
-                            command=lambda comp=new_component: self.toggle_component_selection(comp))
-        new_btn.pack(side="left", padx=5)
-        self.component_buttons[new_component] = new_btn
-        messagebox.showinfo("Birleştirme", "Parçalar başarıyla birleştirildi!")
-        self.update_total_cost()
-        if self.repair_process.is_complete(new_component):
-            messagebox.showinfo("Tamamlandı",
-                                f"Mouse tamamlandı!\nToplam Maliyet: {self.repair_process.total_cost:.2f} TL")
-
-    def delete_selected_component(self):
-        if len(self.selected_components) != 1:
-            messagebox.showwarning("Uyarı", "Lütfen tek bir bileşen seçiniz!")
-            return
-        comp = self.selected_components[0]
-        btn = self.component_buttons.pop(comp)
-        btn.destroy()
-        if comp in self.components:
-            self.components.remove(comp)
-        self.clear_selection()
-        self.update_total_cost()
-
-    def clear_selection(self):
-        for comp in self.selected_components:
-            btn = self.component_buttons.get(comp)
-            if btn:
-                btn.config(relief="raised")
-        self.selected_components = []
-        self.merge_button.config(state="disabled")
-        self.delete_button.config(state="disabled")
-
-    def return_to_main(self):
-        self.repair_frame.destroy()
-        MainMenuGUI(self.root)
 
 
 class AnalysisGUI:
@@ -502,7 +337,7 @@ class AnalysisGUI:
     def __init__(self, root: tk.Tk, main_menu: MainMenuGUI):
         self.root = root
         self.main_menu = main_menu
-        self.root.title("Tamirci Simülasyonu - Faaliyet Raporları")
+        self.root.title("Montajci Simülasyonu - Faaliyet Raporları")
         self.root.geometry("800x600")
         self.activity_db = ActivityDatabase.get_instance()
 
@@ -605,13 +440,10 @@ class AnalysisGUI:
         MainMenuGUI(self.root)
 
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    # Veritabanlarını başlat
-    PartDatabase.get_instance()
-    ActivityDatabase.get_instance()
-    MainMenuGUI(root)
-    root.mainloop()
+# Parça seçildiğinde konsola yazdıran fonksiyon
+def parca_sec(parca):
+    print(f"Seçilen Parça: {parca['ad']} - Maliyet: {parca['maliyet']} - Ömür: {parca['omur']}")
+
 
 parcalar = [
     {"ad": "Üst Kapak", "maliyet": 50, "omur": 5000, "image": "images/top_cover.png"},
@@ -623,49 +455,236 @@ parcalar = [
     {"ad": "USB Kablo", "maliyet": 60, "omur": 6000, "image": "images/usb_cable.png"}
 ]
 
-# Ana pencereyi oluştur
-root = tk.Tk()
-root.title("Parça Seçimi")
-root.geometry("600x400")
 
-# Fotoğrafları yeniden boyutlandıran fonksiyon
-def load_resized_image(image_path, width=100, height=100):
-    try:
-        image = Image.open(image_path)  # Resmi aç
-        image = image.resize((width, height))  # Yeniden boyutlandır
-        return ImageTk.PhotoImage(image)  # Tkinter uyumlu hale getir
-    except Exception as e:
-        print(f"{image_path} yüklenemedi: {e}")
-        return None  # Hata olursa None döndür
+########################################
 
-# Parça seçildiğinde konsola yazdıran fonksiyon
-def parca_sec(parca):
-    print(f"Seçilen Parça: {parca['ad']} - Maliyet: {parca['maliyet']} - Ömür: {parca['omur']}")
+class RepairGUI:
+    """
+    Montaj ekranı, 640x480 boyutunda olup; parça seçim, bileşen birleştirme/silme ve toplam maliyet güncellemesi gibi işlevler sunar.
+    Ayrıca "Ana Menüye Dön" butonu ile ana menüye geri dönüş sağlanır.
+    """
 
-# Ana çerçeve
-frame = tk.Frame(root)
-frame.pack(padx=20, pady=20)  # Kenar boşlukları
+    def __init__(self, root: tk.Tk, main_menu: MainMenuGUI):
+        self.root = root
+        self.main_menu = main_menu
+        self.root.geometry("720x360")
+        self.root.title("Montajci Simülasyonu - Montaj")
 
-# Grid sistemine göre düzenleme
-row, col = 0, 0
-max_columns = 3  # Maksimum 3 sütun olacak şekilde hizalama
-images = []  # Resim referanslarını saklamak için
+        self.components = []
+        self.component_buttons = {}
+        self.selected_components = []
 
-for parca in parcalar:
-    img = load_resized_image(parca["image"], width=120, height=120)
+        self.repair_frame = tk.Frame(self.root)
+        self.repair_frame.pack(fill="both", expand=True)
 
-    if img:
-        images.append(img)  # Resmi listede sakla, yoksa kaybolur
+        top_frame = tk.Frame(self.repair_frame)
+        top_frame.pack(side="top", fill="x", pady=10)
+        self.cost_label = tk.Label(top_frame, text="Toplam Maliyet: 0.00 TL")
+        self.cost_label.pack(side="right", padx=10)
+        self.cost_display = CostDisplay(self.cost_label)
+        self.required_sequence = ["Body", "Sensor", "Devre Kartı", "Right Düğmesi", "Left Düğmesi", "Scroll", "Kablo"]
+        order_text = "Önerilen Sıra: " + " > ".join(self.required_sequence)
+        self.order_label = tk.Label(top_frame, text=order_text)
+        self.order_label.pack(side="right", padx=10)
+        self.repair_process = RepairProcess(self.required_sequence)
+        self.repair_process.register(self.cost_display)
 
-        img_label = tk.Label(frame, image=img)
-        img_label.grid(row=row, column=col, padx=10, pady=10)  # Resmi hizala
+        self.get_part_button = tk.Button(self.repair_frame, text="Parça Al", command=self.open_category_selection)
+        self.get_part_button.pack(pady=10)
 
-        btn = tk.Button(frame, text=parca["ad"], command=lambda p=parca: parca_sec(p))
-        btn.grid(row=row + 1, column=col, padx=10, pady=5)  # Butonu da resmin altına koy
+        self.components_frame = tk.Frame(self.repair_frame)
+        self.components_frame.pack(pady=10)
 
-        col += 1
-        if col >= max_columns:  # 3 sütun tamamlanınca yeni satıra geç
-            col = 0
-            row += 2
+        buttons_frame = tk.Frame(self.repair_frame)
+        buttons_frame.pack(pady=10)
+        self.merge_button = tk.Button(buttons_frame, text="Birleştir", command=self.merge_selected_components)
+        self.merge_button.grid(row=0, column=0, padx=5)
+        self.merge_button.config(state="disabled")
+        self.delete_button = tk.Button(buttons_frame, text="Sil", command=self.delete_selected_component)
+        self.delete_button.grid(row=0, column=1, padx=5)
+        self.delete_button.config(state="disabled")
 
-root.mainloop()
+        # Ana Menüye dönüş butonu
+        self.back_button = tk.Button(self.repair_frame, text="Ana Menüye Dön", command=self.return_to_main)
+        self.back_button.pack(side="bottom", pady=10)
+
+    def load_resized_image(self, image_path, width, height):
+        """
+        Belirtilen image_path üzerinden resmi yükler, yeniden boyutlandırır ve PhotoImage nesnesi döner.
+        """
+        try:
+            image = Image.open(image_path)
+            image = image.resize((width, height))
+            photo = ImageTk.PhotoImage(image)
+            return photo
+        except Exception as e:
+            print(f"Resim yüklenemedi: {image_path} - {e}")
+            return None
+
+    def update_total_cost(self):
+        total = sum(comp.get_cost() for comp in self.components)
+        self.repair_process.total_cost = total
+        self.repair_process.notify_observers(total)
+
+    def open_category_selection(self):
+        """
+        Kategori seçim penceresinde, her kategori için ilgili resmi ve kategori adını grid düzeninde gösterir.
+        """
+        self.category_window = tk.Toplevel(self.root)
+        self.category_window.title("Kategori Seçimi")
+        self.category_window.geometry("480x640")
+
+        # Kategori isimleri ve ilgili resim dosyası eşleştirmesi
+        category_images = {
+            "Body": "images/top_cover.png",
+            "Sensor": "images/sensor.png",
+            "Devre Kartı": "images/pcb_board.png",
+            "Right Düğmesi": "images/right_click.png",
+            "Left Düğmesi": "images/left_click.png",
+            "Scroll": "images/scroll_wheel.png",
+            "USB Kablo": "images/usb_cable.png"
+        }
+
+        frame = tk.Frame(self.category_window)
+        frame.pack(padx=20, pady=20)
+        row, col = 0, 0
+        max_columns = 3  # Maksimum 3 sütun
+        self.category_photo_images = []  # Resim referanslarını saklamak için
+        for cat, image_path in category_images.items():
+            photo = self.load_resized_image(image_path, width=120, height=120)
+            if photo:
+                self.category_photo_images.append(photo)
+                img_label = tk.Label(frame, image=photo)
+                img_label.grid(row=row, column=col, padx=10, pady=10)
+                btn = tk.Button(frame, text=cat, command=lambda c=cat: self.open_part_selection(c))
+                btn.grid(row=row + 1, column=col, padx=10, pady=5)
+            col += 1
+            if col >= max_columns:
+                col = 0
+                row += 2
+
+    def open_part_selection(self, category: str):
+        self.category_window.destroy()
+        self.part_selection_window = tk.Toplevel(self.root)
+        self.part_selection_window.title(f"{category} Parçaları")
+        self.part_selection_window.geometry("480x640")
+        try:
+            db = PartDatabase.get_instance()
+            parts = db.get_parts()
+        except Exception as e:
+            messagebox.showerror("Veritabanı Hatası", str(e))
+            return
+        filtered_parts = [part for part in parts if part.name.startswith(category)]
+        sorter = OptimalSortStrategy()
+        sorted_parts = sorter.sort(filtered_parts)
+
+        # Resimli grid arayüzü (parça seçim ekranı)
+        frame = tk.Frame(self.part_selection_window)
+        frame.pack(padx=20, pady=20)
+        row, col = 0, 0
+        max_columns = 3
+        self.images = []  # Resim referanslarını saklamak için
+        for part in sorted_parts:
+            img = self.load_resized_image(part.image_path, width=120, height=120)
+            if img:
+                self.images.append(img)
+                img_label = tk.Label(frame, image=img)
+                img_label.grid(row=row, column=col, padx=10, pady=10)
+                btn = tk.Button(frame, text=part.name, command=lambda p=part: self.select_part(p))
+                btn.grid(row=row + 1, column=col, padx=10, pady=5)
+                col += 1
+                if col >= max_columns:
+                    col = 0
+                    row += 2
+
+    def select_part(self, part: Part):
+        component = AssemblyComponent([part])
+        self.components.append(component)
+        btn = tk.Button(self.components_frame, text=part.name,
+                        command=lambda comp=component: self.toggle_component_selection(comp))
+        btn.pack(side="left", padx=5)
+        self.component_buttons[component] = btn
+        self.part_selection_window.destroy()
+        self.update_total_cost()
+
+    def toggle_component_selection(self, component: AssemblyComponent):
+        btn = self.component_buttons[component]
+        if component in self.selected_components:
+            self.selected_components.remove(component)
+            btn.config(relief="raised")
+        else:
+            self.selected_components.append(component)
+            btn.config(relief="sunken")
+        if len(self.selected_components) == 1:
+            self.delete_button.config(state="normal")
+            self.merge_button.config(state="disabled")
+        elif len(self.selected_components) == 2:
+            self.merge_button.config(state="normal")
+            self.delete_button.config(state="disabled")
+        else:
+            self.merge_button.config(state="disabled")
+            self.delete_button.config(state="disabled")
+
+    def merge_selected_components(self):
+        if len(self.selected_components) != 2:
+            messagebox.showwarning("Uyarı", "Lütfen iki bileşen seçiniz!")
+            return
+        comp1, comp2 = self.selected_components
+        try:
+            new_component = self.repair_process.merge_components(comp1, comp2)
+        except Exception as e:
+            messagebox.showerror("Birleştirme Hatası", str(e))
+            self.clear_selection()
+            return
+        for comp in self.selected_components:
+            btn = self.component_buttons.pop(comp)
+            btn.destroy()
+            if comp in self.components:
+                self.components.remove(comp)
+        self.clear_selection()
+        self.components.append(new_component)
+        new_btn = tk.Button(self.components_frame, text=" + ".join(new_component.get_names()),
+                            command=lambda comp=new_component: self.toggle_component_selection(comp))
+        new_btn.pack(side="left", padx=5)
+        self.component_buttons[new_component] = new_btn
+        messagebox.showinfo("Birleştirme", "Parçalar başarıyla birleştirildi!")
+        self.update_total_cost()
+        if self.repair_process.is_complete(new_component):
+            messagebox.showinfo("Tamamlandı",
+                                f"Mouse tamamlandı!\nToplam Maliyet: {self.repair_process.total_cost:.2f} TL")
+
+    def delete_selected_component(self):
+        if len(self.selected_components) != 1:
+            messagebox.showwarning("Uyarı", "Lütfen tek bir bileşen seçiniz!")
+            return
+        comp = self.selected_components[0]
+        btn = self.component_buttons.pop(comp)
+        btn.destroy()
+        if comp in self.components:
+            self.components.remove(comp)
+        self.clear_selection()
+        self.update_total_cost()
+
+    def clear_selection(self):
+        for comp in self.selected_components:
+            btn = self.component_buttons.get(comp)
+            if btn:
+                btn.config(relief="raised")
+        self.selected_components = []
+        self.merge_button.config(state="disabled")
+        self.delete_button.config(state="disabled")
+
+    def return_to_main(self):
+        self.repair_frame.destroy()
+        MainMenuGUI(self.root)
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+
+
+    # Veritabanlarını başlat
+    PartDatabase.get_instance()
+    ActivityDatabase.get_instance()
+    MainMenuGUI(root)
+    root.mainloop()
